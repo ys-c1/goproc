@@ -29,20 +29,25 @@ func Normalize(v []float64) {
 	}
 }
 
+// QuantizeGray applies the eight-bit grayscale rounding/clamping rule used by PGM.
+func QuantizeGray(x float64) byte {
+	g := int(x*255 + 0.5)
+	if g < 0 {
+		g = 0
+	}
+	if g > 255 {
+		g = 255
+	}
+	return byte(g)
+}
+
 // EncodePGM 输出八位灰度 PGM。
 func EncodePGM(size int, v []float64) []byte {
-	head := fmt.Sprintf("P5\\n%d %d\\n255\\n", size, size)
+	head := fmt.Sprintf("P5\n%d %d\n255\n", size, size)
 	out := make([]byte, 0, len(head)+size*size)
 	out = append(out, head...)
 	for _, x := range v {
-		g := int(x*255 + 0.5)
-		if g < 0 {
-			g = 0
-		}
-		if g > 255 {
-			g = 255
-		}
-		out = append(out, byte(g))
+		out = append(out, QuantizeGray(x))
 	}
 	return out
 }
