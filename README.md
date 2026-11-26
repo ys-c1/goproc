@@ -7,8 +7,10 @@
 - `internal/fbm/` 分形叠加
 - `internal/hmap/` 归一化与 PGM 导出
 - `cmd/goproc/` 命令行，`gen` 子命令导出高度图
+- `cmd/seedcov/` 种子独立性检验：三档种子间隔的协方差与 H0 波动范围对照，见 `docs/seed-independence.md`
 
 ```
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
+go run ./cmd/seedcov --n=4096
 ```

@@ -40,6 +40,10 @@ func fade(t float64) float64 { return t * t * t * (t*(t*6-15) + 10) }
 
 func lerp(a, b, t float64) float64 { return a + (b-a)*t }
 
+// Lattice 返回整数格点 (ix,iy) 上未经插值的原始格点值。
+// 它是种子派生的最底层输出，Value 的插值结果完全由相邻四个格点值组合而成。
+func (s *Source) Lattice(ix, iy int) float64 { return s.grad(ix, iy) }
+
 func (s *Source) grad(ix, iy int) float64 {
 	h := s.perm[(int(s.perm[ix&255])+iy)&511]
 	return float64(h)/127.5 - 1
