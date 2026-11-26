@@ -12,3 +12,11 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+域扭曲的梯度—位移验证可复现实验：
+
+```
+python3 experiments/domain_warp/run_experiment.py
+```
+
+报告、逐图 CSV、扭曲前后图和归档压缩包输出在 `artifacts/domain_warp/`。

@@ -17,11 +17,12 @@ func main() {
 	size := fs.Int("size", 128, "边长")
 	seed := fs.Uint64("seed", 1, "种子")
 	octaves := fs.Int("octaves", 4, "层数")
+	frequency := fs.Float64("frequency", 0.02, "基础频率")
 	out := fs.String("out", "map.pgm", "输出文件")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		os.Exit(2)
 	}
-	h, err := api.Generate(api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: 0.02})
+	h, err := api.Generate(api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: *frequency})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "generate failed:", err)
 		os.Exit(1)
