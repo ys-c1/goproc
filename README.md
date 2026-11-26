@@ -12,3 +12,10 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+熵重映射分析（三档层数、指数、熵、分位点与直方图）见
+[`artifacts/REMAP_REPORT.md`](artifacts/REMAP_REPORT.md)，复现命令：
+
+```
+make analysis
+```
