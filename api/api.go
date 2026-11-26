@@ -55,6 +55,73 @@ type Heightmap struct {
 // At 取某点高度。
 func (h *Heightmap) At(x, y int) float64 { return h.Data[y*h.Size+x] }
 
+// RectOptions 描述一个各向异性采样的矩形高度图。
+//
+// 物理域为半开正方形 [0,L)×[0,L)。场点按 (RX*x, RY*y) 送入噪声，
+// RX、RY 即两轴相对基础场的坐标缩放比；(NX, NY) 是两轴采样数，
+// 由 internal/sampling 按奈奎斯特边反解得到。
+type RectOptions struct {
+	NX, NY     int     // 两轴采样数
+	L          float64 // 物理域边长
+	RX, RY     float64 // 两轴缩放比（场点 = (RX*x, RY*y)）
+	Octaves    int
+	Lacunarity float64
+	Gain       float64
+	Seed       uint64
+}
+
+// RectHeightmap 是矩形（通常各向异性）高度图，行优先，Data 长度 NX*NY。
+type RectHeightmap struct {
+	NX, NY int
+	Data   []float64 // 归一化前的原始分形值，便于离线做频谱分析
+}
+
+func (o RectOptions) validate() error {
+	if o.NX <= 0 || o.NY <= 0 || o.NX > 8192 || o.NY > 8192 {
+		return fmt.Errorf("%w: NX=%d NY=%d", ErrBadSize, o.NX, o.NY)
+	}
+	if o.L <= 0 || o.RX <= 0 || o.RY <= 0 {
+		return fmt.Errorf("%w: L=%v RX=%v RY=%v", ErrBadParam, o.L, o.RX, o.RY)
+	}
+	if o.Octaves <= 0 || o.Octaves > 12 {
+		return fmt.Errorf("%w: Octaves=%d", ErrBadParam, o.Octaves)
+	}
+	if o.Lacunarity <= 1 || o.Gain <= 0 || o.Gain >= 1 {
+		return fmt.Errorf("%w: Lacunarity=%v Gain=%v", ErrBadParam, o.Lacunarity, o.Gain)
+	}
+	return nil
+}
+
+// GenerateRect 按给定网格与缩放比生成矩形高度图，返回未归一化的原始值。
+func GenerateRect(opt RectOptions) (*RectHeightmap, error) {
+	if err := opt.validate(); err != nil {
+		return nil, err
+	}
+	src := noise.New(opt.Seed)
+	out := make([]float64, opt.NX*opt.NY)
+	for j := 0; j < opt.NY; j++ {
+		py := float64(j) * opt.L / float64(opt.NY)
+		for i := 0; i < opt.NX; i++ {
+			px := float64(i) * opt.L / float64(opt.NX)
+			out[j*opt.NX+i] = fbm.Eval(src, opt.RX*px, opt.RY*py,
+				opt.Octaves, opt.Lacunarity, opt.Gain)
+		}
+	}
+	return &RectHeightmap{NX: opt.NX, NY: opt.NY, Data: out}, nil
+}
+
+// Normalized 返回零到一归一化后的副本，原图保持不变。
+func (h *RectHeightmap) Normalized() []float64 {
+	v := append([]float64(nil), h.Data...)
+	hmap.Normalize(v)
+	return v
+}
+
+// ToPGM 导出为八位灰度 PGM。
+func (h *RectHeightmap) ToPGM() []byte {
+	return hmap.EncodePGMRect(h.NX, h.NY, h.Normalized())
+}
+
 // Generate 生成高度图。
 func Generate(opt Options) (*Heightmap, error) {
 	if err := opt.validate(); err != nil {

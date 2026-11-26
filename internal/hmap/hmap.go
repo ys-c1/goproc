@@ -31,8 +31,13 @@ func Normalize(v []float64) {
 
 // EncodePGM 输出八位灰度 PGM。
 func EncodePGM(size int, v []float64) []byte {
-	head := fmt.Sprintf("P5\\n%d %d\\n255\\n", size, size)
-	out := make([]byte, 0, len(head)+size*size)
+	return EncodePGMRect(size, size, v)
+}
+
+// EncodePGMRect 输出宽 width、高 height 的八位灰度 PGM，行优先存储。
+func EncodePGMRect(width, height int, v []float64) []byte {
+	head := fmt.Sprintf("P5\n%d %d\n255\n", width, height)
+	out := make([]byte, 0, len(head)+width*height)
 	out = append(out, head...)
 	for _, x := range v {
 		g := int(x*255 + 0.5)
