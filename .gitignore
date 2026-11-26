@@ -1,2 +1,4 @@
 *.pgm
 build/
+__pycache__/
+*.pyc
