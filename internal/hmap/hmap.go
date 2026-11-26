@@ -29,9 +29,9 @@ func Normalize(v []float64) {
 	}
 }
 
-// EncodePGM 输出八位灰度 PGM。
+// EncodePGM 输出八位灰度 PGM（P5）。
 func EncodePGM(size int, v []float64) []byte {
-	head := fmt.Sprintf("P5\\n%d %d\\n255\\n", size, size)
+	head := fmt.Sprintf("P5\n%d %d\n255\n", size, size)
 	out := make([]byte, 0, len(head)+size*size)
 	out = append(out, head...)
 	for _, x := range v {

@@ -18,6 +18,7 @@ type Options struct {
 	Gain       float64 // 振幅衰减，默认 0.5
 	Seed       uint64  // 种子，默认 1
 	Frequency  float64 // 基础频率，默认 0.02
+	Raw        bool    // 跳过 min-max 归一化，保留按层权归一的 fBm 原值，默认 false
 }
 
 // DefaultOptions 返回默认参数。
@@ -68,7 +69,9 @@ func Generate(opt Options) (*Heightmap, error) {
 				opt.Octaves, opt.Lacunarity, opt.Gain)
 		}
 	}
-	hmap.Normalize(out)
+	if !opt.Raw {
+		hmap.Normalize(out)
+	}
 	return &Heightmap{Size: opt.Size, Data: out}, nil
 }
 
