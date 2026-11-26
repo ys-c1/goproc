@@ -4,7 +4,9 @@ package api
 import (
 	"errors"
 	"fmt"
+	"sort"
 
+	"goproc/internal/caliper"
 	"goproc/internal/fbm"
 	"goproc/internal/hmap"
 	"goproc/internal/noise"
@@ -54,6 +56,25 @@ type Heightmap struct {
 
 // At 取某点高度。
 func (h *Heightmap) At(x, y int) float64 { return h.Data[y*h.Size+x] }
+
+// Above 返回原始高度不低于阈值 t（零到一）的全部整数格点，按 (x,y) 字典序升序。
+// 这些格点即“地形上的点”，是最远点对的候选全集。
+func (h *Heightmap) Above(t float64) []caliper.Point {
+	pts := make([]caliper.Point, 0, len(h.Data)/4)
+	for y := 0; y < h.Size; y++ {
+		row := h.Data[y*h.Size : (y+1)*h.Size]
+		for x, v := range row {
+			if v >= t {
+				pts = append(pts, caliper.Point{X: x, Y: y})
+			}
+		}
+	}
+	sort.Slice(pts, func(i, j int) bool { return caliper.Less(pts[i], pts[j]) })
+	return pts
+}
+
+// Gray 返回八位灰度值（零到一线性映射到零到二百五十五，四舍五入）。
+func (h *Heightmap) Gray(x, y int) uint8 { return hmap.Gray8(h.At(x, y)) }
 
 // Generate 生成高度图。
 func Generate(opt Options) (*Heightmap, error) {
