@@ -46,17 +46,18 @@ func (o Options) validate() error {
 	return nil
 }
 
-// Heightmap 是生成结果，值域归一化到零到一。
+// Heightmap 是生成结果，Data 值域归一化到零到一。
 type Heightmap struct {
 	Size int
 	Data []float64
+	Span float64 // 归一化前的极差 hi-lo；梯度除以它即为原尺度
 }
 
 // At 取某点高度。
 func (h *Heightmap) At(x, y int) float64 { return h.Data[y*h.Size+x] }
 
-// Generate 生成高度图。
-func Generate(opt Options) (*Heightmap, error) {
+// raw 生成未归一化的分形场，值域约在负一到一之间。
+func raw(opt Options) ([]float64, error) {
 	if err := opt.validate(); err != nil {
 		return nil, err
 	}
@@ -68,8 +69,38 @@ func Generate(opt Options) (*Heightmap, error) {
 				opt.Octaves, opt.Lacunarity, opt.Gain)
 		}
 	}
-	hmap.Normalize(out)
-	return &Heightmap{Size: opt.Size, Data: out}, nil
+	return out, nil
+}
+
+// Raw 返回未归一化的高度场，供倾角统计使用。
+//
+// 谱斜率模型描述的是原始尺度上的梯度；Generate 的归一化会再除以极差 Span，
+// 两者不可混比。高度恒定的退化场 Span 为零。
+func Raw(opt Options) (*Heightmap, error) {
+	data, err := raw(opt)
+	if err != nil {
+		return nil, err
+	}
+	lo, hi := data[0], data[0]
+	for _, v := range data {
+		if v < lo {
+			lo = v
+		}
+		if v > hi {
+			hi = v
+		}
+	}
+	return &Heightmap{Size: opt.Size, Data: data, Span: hi - lo}, nil
+}
+
+// Generate 生成归一化到零到一的高度图。
+func Generate(opt Options) (*Heightmap, error) {
+	data, err := raw(opt)
+	if err != nil {
+		return nil, err
+	}
+	lo, hi := hmap.Normalize(data)
+	return &Heightmap{Size: opt.Size, Data: data, Span: hi - lo}, nil
 }
 
 // ToPGM 导出为八位灰度 PGM。
