@@ -18,11 +18,17 @@ type Options struct {
 	Gain       float64 // 振幅衰减，默认 0.5
 	Seed       uint64  // 种子，默认 1
 	Frequency  float64 // 基础频率，默认 0.02
+
+	// SharedPerm 控制置换表是否在相邻层间共用。
+	// 零值 false（默认，已修复）：每层用 noise.LayerSeed 从主种子派生独立子表，
+	// 消除跨层尺度同源的重复山脊。
+	// 置 true 时退回旧行为：所有层共用同一张置换表，仅用于复现/对照缺陷。
+	SharedPerm bool
 }
 
 // DefaultOptions 返回默认参数。
 func DefaultOptions() Options {
-	return Options{Size: 128, Octaves: 4, Lacunarity: 2.0, Gain: 0.5, Seed: 1, Frequency: 0.02}
+	return Options{Size: 128, Octaves: 4, Lacunarity: 2.0, Gain: 0.5, Seed: 1, Frequency: 0.02, SharedPerm: false}
 }
 
 var (
@@ -60,14 +66,31 @@ func Generate(opt Options) (*Heightmap, error) {
 	if err := opt.validate(); err != nil {
 		return nil, err
 	}
-	src := noise.New(opt.Seed)
 	out := make([]float64, opt.Size*opt.Size)
-	for y := 0; y < opt.Size; y++ {
-		for x := 0; x < opt.Size; x++ {
-			out[y*opt.Size+x] = fbm.Eval(src, float64(x)*opt.Frequency, float64(y)*opt.Frequency,
-				opt.Octaves, opt.Lacunarity, opt.Gain)
+
+	if opt.SharedPerm {
+		// 旧路径：所有层共用同一张置换表（存在跨层同源重复）。
+		src := noise.New(opt.Seed)
+		for y := 0; y < opt.Size; y++ {
+			for x := 0; x < opt.Size; x++ {
+				out[y*opt.Size+x] = fbm.Eval(src, float64(x)*opt.Frequency, float64(y)*opt.Frequency,
+					opt.Octaves, opt.Lacunarity, opt.Gain)
+			}
+		}
+	} else {
+		// 修复路径：每层一张按层派生的置换子表，循环外构造、逐像素复用。
+		layers := make([]*noise.Source, opt.Octaves)
+		for i := range layers {
+			layers[i] = noise.NewLayer(opt.Seed, i)
+		}
+		for y := 0; y < opt.Size; y++ {
+			for x := 0; x < opt.Size; x++ {
+				out[y*opt.Size+x] = fbm.EvalLayered(layers, float64(x)*opt.Frequency, float64(y)*opt.Frequency,
+					opt.Octaves, opt.Lacunarity, opt.Gain)
+			}
 		}
 	}
+
 	hmap.Normalize(out)
 	return &Heightmap{Size: opt.Size, Data: out}, nil
 }

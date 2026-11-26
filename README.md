@@ -12,3 +12,23 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+## 置换表与重复山脊
+
+默认已修复为**每层派生独立置换子表**（`noise.LayerSeed(seed, i)` + `fbm.EvalLayered`），
+消除相邻层共用一张置换表导致的尺度同源重复山脊。需要复现旧缺陷时：
+
+```
+go run ./cmd/goproc gen ... --shared-perm --out shared.pgm
+```
+
+周期证明、重复片定位与三档层数（2/4/6）比对见
+[`REPETITION_AUDIT.md`](REPETITION_AUDIT.md)；一键复现标记图、坐标与相关指标：
+
+```
+make audit
+```
+
+产物在 `artifacts/repetition/`（`marked_K2/K4/K6.png`、`COORDINATES.md`、
+`repeat_coordinates.csv`、`repeat_metrics.json`）。
+

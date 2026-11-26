@@ -33,6 +33,22 @@ func New(seed uint64) *Source {
 	return s
 }
 
+// LayerSeed 从主种子与层号派生第 layer 层专属子表的种子。
+//
+// 派生用 splitmix64 链加固定域分隔常数：同一主种子不同层得到互不相关的
+// 子种子，不同主种子也不相关，且完全确定。它是“按层派生子表”的唯一派生
+// 规则，分析脚本 analysis/goproc_port.py 逐式镜像本函数。
+func LayerSeed(master uint64, layer int) uint64 {
+	h := splitmix64(master + 0x9E3779B97F4A7C15)
+	h ^= splitmix64(uint64(layer) + 0x243F6A8885A308D3)
+	return splitmix64(h)
+}
+
+// NewLayer 构造第 layer 层专属的噪声源，其置换子表由 (master, layer) 派生。
+func NewLayer(master uint64, layer int) *Source {
+	return New(LayerSeed(master, layer))
+}
+
 // Seed 返回构造时的种子。
 func (s *Source) Seed() uint64 { return s.seed }
 
