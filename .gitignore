@@ -1,2 +1,4 @@
 *.pgm
 build/
+# 但保留分析任务存档的地形图 PGM
+!artifacts/maps/**/*.pgm
