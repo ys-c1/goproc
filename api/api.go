@@ -68,7 +68,9 @@ func Generate(opt Options) (*Heightmap, error) {
 				opt.Octaves, opt.Lacunarity, opt.Gain)
 		}
 	}
-	hmap.Normalize(out)
+	// 多倍频叠加的值分布是中间多两头少的钟形，这里用经验累积分布
+	// 反解出的单调映射把分布拉平，输出值域仍在零到一。
+	hmap.Equalize(out)
 	return &Heightmap{Size: opt.Size, Data: out}, nil
 }
 
