@@ -1,2 +1,5 @@
 *.pgm
 build/
+# 守恒实验的侵蚀图存档需要入库，仅此目录例外
+!artifacts/erosion/
+!artifacts/erosion/*.pgm
