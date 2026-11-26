@@ -4,20 +4,24 @@ package api
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"goproc/internal/fbm"
 	"goproc/internal/hmap"
 	"goproc/internal/noise"
+	"goproc/internal/stretch"
 )
 
 // Options 是全部可调参数，新增参数必须加在这里并注明默认值。
 type Options struct {
-	Size       int     // 边长像素数，默认 128
-	Octaves    int     // 分形层数，默认 4
-	Lacunarity float64 // 频率倍增，默认 2.0
-	Gain       float64 // 振幅衰减，默认 0.5
-	Seed       uint64  // 种子，默认 1
-	Frequency  float64 // 基础频率，默认 0.02
+	Size         int     // 边长像素数，默认 128
+	Octaves      int     // 分形层数，默认 4
+	Lacunarity   float64 // 频率倍增，默认 2.0
+	Gain         float64 // 振幅衰减，默认 0.5
+	Seed         uint64  // 种子，默认 1
+	Frequency    float64 // 基础频率，默认 0.02
+	StretchTheta float64 // 拉伸方向角（弧度），正东为零逆时针为正，默认 0
+	StretchRatio float64 // 拉伸轴比（剪切参数），零表示不拉伸，默认 0
 }
 
 // DefaultOptions 返回默认参数。
@@ -43,6 +47,9 @@ func (o Options) validate() error {
 	if o.Frequency <= 0 {
 		return fmt.Errorf("%w: Frequency=%v", ErrBadParam, o.Frequency)
 	}
+	if o.StretchRatio < 0 || math.IsNaN(o.StretchTheta) || math.IsNaN(o.StretchRatio) {
+		return fmt.Errorf("%w: StretchTheta=%v StretchRatio=%v", ErrBadParam, o.StretchTheta, o.StretchRatio)
+	}
 	return nil
 }
 
@@ -61,10 +68,14 @@ func Generate(opt Options) (*Heightmap, error) {
 		return nil, err
 	}
 	src := noise.New(opt.Seed)
+	warp := stretch.Warp{Theta: opt.StretchTheta, Ratio: opt.StretchRatio}
 	out := make([]float64, opt.Size*opt.Size)
 	for y := 0; y < opt.Size; y++ {
 		for x := 0; x < opt.Size; x++ {
-			out[y*opt.Size+x] = fbm.Eval(src, float64(x)*opt.Frequency, float64(y)*opt.Frequency,
+			// 数学坐标约定：x 轴正东；行号 y 向南增大，故北向坐标取 (Size-1-y)。
+			// 方向角以正东为零、逆时针为正，Warp 在该右手坐标系内定义。
+			wx, wy := warp.Apply(float64(x)*opt.Frequency, float64(opt.Size-1-y)*opt.Frequency)
+			out[y*opt.Size+x] = fbm.Eval(src, wx, wy,
 				opt.Octaves, opt.Lacunarity, opt.Gain)
 		}
 	}
