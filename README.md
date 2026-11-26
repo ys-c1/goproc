@@ -12,3 +12,11 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+旋转地形的置换表周期峰验证：
+
+```
+python3 analysis/run_autocorr.py
+```
+
+结果与推导见 `artifacts/autocorr/REPORT.md`。
