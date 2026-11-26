@@ -1,2 +1,4 @@
 *.pgm
 build/
+# 但 artifacts 下的 PGM 是正式核对产物，需要保留
+!artifacts/**/*.pgm
