@@ -6,9 +6,13 @@
 - `internal/noise/` 值噪声，置换表由 splitmix64 派生
 - `internal/fbm/` 分形叠加
 - `internal/hmap/` 归一化与 PGM 导出
+- `internal/erosion/` 给定坡度、汇流量后的闭式降雨侵蚀与逐格核对
 - `cmd/goproc/` 命令行，`gen` 子命令导出高度图
+- `cmd/verifyerosion/` 生成闭式/迭代侵蚀核对证据到 `artifacts/erosion/`
+- `docs/erosion-closed-form.md` 单步乘积式与 \(N\) 轮总量的证明
 
 ```
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
+make verify-erosion
 ```
