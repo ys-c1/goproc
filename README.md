@@ -12,3 +12,6 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+归一化后灰度 255 饱和占比的分析与预判见 `docs/saturation.md`，
+实验程序为 `cmd/satstudy`（`go run ./cmd/satstudy -out docs/saturation`）。
