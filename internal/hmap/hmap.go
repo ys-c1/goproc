@@ -29,20 +29,37 @@ func Normalize(v []float64) {
 	}
 }
 
+func clamp8(g int) int {
+	if g < 0 {
+		return 0
+	}
+	if g > 255 {
+		return 255
+	}
+	return g
+}
+
+// ToGray8 把零到一的浮点高度量化为零到二五五的灰度整数。
+func ToGray8(v []float64) []int {
+	g := make([]int, len(v))
+	for i, x := range v {
+		g[i] = clamp8(int(x*255 + 0.5))
+	}
+	return g
+}
+
 // EncodePGM 输出八位灰度 PGM。
 func EncodePGM(size int, v []float64) []byte {
-	head := fmt.Sprintf("P5\\n%d %d\\n255\\n", size, size)
+	return EncodePGM8(size, ToGray8(v))
+}
+
+// EncodePGM8 直接由灰度整数输出八位 PGM。
+func EncodePGM8(size int, g []int) []byte {
+	head := fmt.Sprintf("P5\n%d %d\n255\n", size, size)
 	out := make([]byte, 0, len(head)+size*size)
 	out = append(out, head...)
-	for _, x := range v {
-		g := int(x*255 + 0.5)
-		if g < 0 {
-			g = 0
-		}
-		if g > 255 {
-			g = 255
-		}
-		out = append(out, byte(g))
+	for _, x := range g {
+		out = append(out, byte(clamp8(x)))
 	}
 	return out
 }
