@@ -12,3 +12,17 @@
 make test
 go run ./cmd/goproc gen --size 128 --seed 7 --octaves 4 --out map.pgm
 ```
+
+## 等高线开闭判定（无追踪预判）
+
+`internal/contour/` 在四邻域网格上证明并验证：等值线闭合当且仅当它不触及边界；
+开曲线条数 O=B/2（B 为边界边跨越次数，必为偶数），闭合曲线条数可用两种不追踪
+曲线的独立方法预判——区域填充 L=(c−b)+holes 与逐格局部欧拉计数 L=2c−b−χ。
+证明、约定（边界格/边界边、四邻域 vs 八邻域）与逐档比对见
+`artifacts/contour/ANALYSIS.md`。
+
+```
+go run ./cmd/contour --size 128 --seed 7 --octaves 4 --outdir artifacts/contour
+python3 scripts/cross_validate.py   # 与 scikit-image find_contours 逐项交叉核对
+python3 scripts/plot_contours.py    # 两个等高距的等高线图分别存档
+```
