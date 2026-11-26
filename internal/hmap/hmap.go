@@ -29,13 +29,24 @@ func Normalize(v []float64) {
 	}
 }
 
-// EncodePGM 输出八位灰度 PGM。
+// EncodePGM 输出八位灰度 PGM，输入假定已归一化到零到一。
 func EncodePGM(size int, v []float64) []byte {
+	return EncodePGMScaled(size, v, 0, 1)
+}
+
+// EncodePGMScaled 按给定最小/最大值线性映射到八位灰度，越界截断。
+func EncodePGMScaled(size int, v []float64, lo, hi float64) []byte {
 	head := fmt.Sprintf("P5\\n%d %d\\n255\\n", size, size)
 	out := make([]byte, 0, len(head)+size*size)
 	out = append(out, head...)
+	span := hi - lo
 	for _, x := range v {
-		g := int(x*255 + 0.5)
+		var g int
+		if span == 0 {
+			g = 0
+		} else {
+			g = int((x-lo)/span*255 + 0.5)
+		}
 		if g < 0 {
 			g = 0
 		}

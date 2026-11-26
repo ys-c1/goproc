@@ -55,8 +55,18 @@ type Heightmap struct {
 // At 取某点高度。
 func (h *Heightmap) At(x, y int) float64 { return h.Data[y*h.Size+x] }
 
-// Generate 生成高度图。
+// Generate 生成高度图（结果归一化到零到一）。
 func Generate(opt Options) (*Heightmap, error) {
+	data, err := GenerateRaw(opt)
+	if err != nil {
+		return nil, err
+	}
+	hmap.Normalize(data)
+	return &Heightmap{Size: opt.Size, Data: data}, nil
+}
+
+// GenerateRaw 生成未归一化的原始 fBm 值，用于需要逐点精确比较的数值实验。
+func GenerateRaw(opt Options) ([]float64, error) {
 	if err := opt.validate(); err != nil {
 		return nil, err
 	}
@@ -68,9 +78,25 @@ func Generate(opt Options) (*Heightmap, error) {
 				opt.Octaves, opt.Lacunarity, opt.Gain)
 		}
 	}
-	hmap.Normalize(out)
-	return &Heightmap{Size: opt.Size, Data: out}, nil
+	return out, nil
 }
 
 // ToPGM 导出为八位灰度 PGM。
 func (h *Heightmap) ToPGM() []byte { return hmap.EncodePGM(h.Size, h.Data) }
+
+// Gradients 返回单位像素前向差分梯度 (gx, gy)，边缘像素退回后向差分。
+func (h *Heightmap) Gradients() (gx, gy []float64) {
+	return hmap.Gradient(h.Size, h.Data, 1)
+}
+
+// ShadeLinear 返回未截断的点积亮度 L=l·n，可正可负。
+func (h *Heightmap) ShadeLinear(l hmap.Light) []float64 {
+	gx, gy := h.Gradients()
+	return hmap.ShadeLinear(gx, gy, l)
+}
+
+// Shade 返回完整朗伯光照亮度（零到一）及背光（点积为负）像素占比。
+func (h *Heightmap) Shade(l hmap.Light) (b []float64, zeroFrac float64) {
+	gx, gy := h.Gradients()
+	return hmap.Shade(gx, gy, l)
+}
