@@ -38,6 +38,9 @@ func (s *Source) Seed() uint64 { return s.seed }
 
 func fade(t float64) float64 { return t * t * t * (t*(t*6-15) + 10) }
 
+// fadeDeriv 是 fade 的导数，fade'(t)=30t^2(t-1)^2。
+func fadeDeriv(t float64) float64 { return 30 * t * t * (t - 1) * (t - 1) }
+
 func lerp(a, b, t float64) float64 { return a + (b-a)*t }
 
 func (s *Source) grad(ix, iy int) float64 {
@@ -58,6 +61,26 @@ func (s *Source) Value(x, y float64) float64 {
 	c01 := s.grad(x0, y0+1)
 	c11 := s.grad(x0+1, y0+1)
 	return lerp(lerp(c00, c10, u), lerp(c01, c11, u), v)
+}
+
+// ValueGrad 返回噪声值及对 x、y 的解析导数。
+func (s *Source) ValueGrad(x, y float64) (val, gx, gy float64) {
+	x0 := int(floor(x))
+	y0 := int(floor(y))
+	fx := x - float64(x0)
+	fy := y - float64(y0)
+	u := fade(fx)
+	v := fade(fy)
+	du := fadeDeriv(fx)
+	dv := fadeDeriv(fy)
+	c00 := s.grad(x0, y0)
+	c10 := s.grad(x0+1, y0)
+	c01 := s.grad(x0, y0+1)
+	c11 := s.grad(x0+1, y0+1)
+	val = lerp(lerp(c00, c10, u), lerp(c01, c11, u), v)
+	gx = ((c10-c00)*(1-v) + (c11-c01)*v) * du
+	gy = ((c01-c00)*(1-u) + (c11-c10)*u) * dv
+	return val, gx, gy
 }
 
 func floor(v float64) float64 {
