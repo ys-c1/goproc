@@ -20,3 +20,12 @@ func Eval(s *noise.Source, x, y float64, octaves int, lacunarity, gain float64) 
 	}
 	return sum / norm
 }
+
+// Trace 记录点 (x,y) 在全部八度求值中访问到的置换表槽位。
+func Trace(s *noise.Source, x, y float64, octaves int, lacunarity, gain float64, slots map[int]struct{}) {
+	freq := 1.0
+	for i := 0; i < octaves; i++ {
+		s.TraceValue(x*freq, y*freq, slots)
+		freq *= lacunarity
+	}
+}

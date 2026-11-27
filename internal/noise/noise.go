@@ -60,6 +60,41 @@ func (s *Source) Value(x, y float64) float64 {
 	return lerp(lerp(c00, c10, u), lerp(c01, c11, u), v)
 }
 
+// TraceValue 记录 Value(x,y) 求值时四个角点实际访问的全部置换表槽位。
+// grad(ix,iy) 先读槽 ix&255，再读槽 (perm[ix&255]+iy)&511，两处都记录。
+func (s *Source) TraceValue(x, y float64, slots map[int]struct{}) {
+	x0 := int(floor(x))
+	y0 := int(floor(y))
+	for _, ix := range []int{x0, x0 + 1} {
+		for _, iy := range []int{y0, y0 + 1} {
+			slots[ix&255] = struct{}{}
+			slots[(int(s.perm[ix&255])+iy)&511] = struct{}{}
+		}
+	}
+}
+
+// Snapshot 读出给定槽位上的条目，槽位统一折算到零到二百五十五。
+func (s *Source) Snapshot(slots map[int]struct{}) map[int]uint8 {
+	out := make(map[int]uint8, len(slots))
+	for k := range slots {
+		j := k & 255
+		out[j] = s.perm[j]
+	}
+	return out
+}
+
+// ApplyEntries 把条目写入指定槽位，并自动同步置换表双倍长度的镜像段。
+func (s *Source) ApplyEntries(entries map[int]uint8) {
+	for k, v := range entries {
+		j := k & 255
+		s.perm[j] = v
+		s.perm[j+256] = v
+	}
+}
+
+// Entry 读取零到二百五十五号槽位上的置换条目。
+func (s *Source) Entry(slot int) uint8 { return s.perm[slot&255] }
+
 func floor(v float64) float64 {
 	i := float64(int64(v))
 	if v < i {
