@@ -17,11 +17,13 @@ func main() {
 	size := fs.Int("size", 128, "边长")
 	seed := fs.Uint64("seed", 1, "种子")
 	octaves := fs.Int("octaves", 4, "层数")
+	edgeM := fs.Float64("edge-m", 0.01, "边缘过渡二阶导上限（每像素平方），<=0 关闭")
 	out := fs.String("out", "map.pgm", "输出文件")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		os.Exit(2)
 	}
-	h, err := api.Generate(api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: 0.02})
+	opt := api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: 0.02, EdgeMaxCurv: *edgeM}
+	h, err := api.Generate(opt)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "generate failed:", err)
 		os.Exit(1)
@@ -30,5 +32,5 @@ func main() {
 		fmt.Fprintln(os.Stderr, "write failed:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("wrote %s size=%d\n", *out, h.Size)
+	fmt.Printf("wrote %s size=%d edge_width=%d\n", *out, h.Size, opt.EdgeWidth())
 }
