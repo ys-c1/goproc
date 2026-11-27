@@ -18,10 +18,11 @@ func main() {
 	seed := fs.Uint64("seed", 1, "种子")
 	octaves := fs.Int("octaves", 4, "层数")
 	out := fs.String("out", "map.pgm", "输出文件")
+	kernel := fs.String("kernel", "quintic", "插值核：quintic(C2) 或 cubic(C1)")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		os.Exit(2)
 	}
-	h, err := api.Generate(api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: 0.02})
+	h, err := api.Generate(api.Options{Size: *size, Octaves: *octaves, Lacunarity: 2, Gain: 0.5, Seed: *seed, Frequency: 0.02, Kernel: *kernel})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "generate failed:", err)
 		os.Exit(1)

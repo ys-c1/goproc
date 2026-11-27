@@ -18,11 +18,12 @@ type Options struct {
 	Gain       float64 // 振幅衰减，默认 0.5
 	Seed       uint64  // 种子，默认 1
 	Frequency  float64 // 基础频率，默认 0.02
+	Kernel     string  // 插值核："quintic"（默认，C2）或 "cubic"（C1，仅用于对照）
 }
 
 // DefaultOptions 返回默认参数。
 func DefaultOptions() Options {
-	return Options{Size: 128, Octaves: 4, Lacunarity: 2.0, Gain: 0.5, Seed: 1, Frequency: 0.02}
+	return Options{Size: 128, Octaves: 4, Lacunarity: 2.0, Gain: 0.5, Seed: 1, Frequency: 0.02, Kernel: "quintic"}
 }
 
 var (
@@ -43,6 +44,9 @@ func (o Options) validate() error {
 	if o.Frequency <= 0 {
 		return fmt.Errorf("%w: Frequency=%v", ErrBadParam, o.Frequency)
 	}
+	if o.Kernel != "" && o.Kernel != "quintic" && o.Kernel != "cubic" {
+		return fmt.Errorf("%w: Kernel=%q", ErrBadParam, o.Kernel)
+	}
 	return nil
 }
 
@@ -60,7 +64,12 @@ func Generate(opt Options) (*Heightmap, error) {
 	if err := opt.validate(); err != nil {
 		return nil, err
 	}
-	src := noise.New(opt.Seed)
+	var src *noise.Source
+	if opt.Kernel == "cubic" {
+		src = noise.NewWithKernel(opt.Seed, noise.CubicKernel{})
+	} else {
+		src = noise.New(opt.Seed) // 默认五次核
+	}
 	out := make([]float64, opt.Size*opt.Size)
 	for y := 0; y < opt.Size; y++ {
 		for x := 0; x < opt.Size; x++ {

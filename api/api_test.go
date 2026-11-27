@@ -58,4 +58,33 @@ func TestRejects(t *testing.T) {
 	if _, err := Generate(bad); err == nil {
 		t.Fatal("增益越界应报错")
 	}
+	badKernel := DefaultOptions()
+	badKernel.Kernel = "spline"
+	if _, err := Generate(badKernel); err == nil {
+		t.Fatal("非法核名应报错")
+	}
+}
+
+func TestKernelSelection(t *testing.T) {
+	cubic := DefaultOptions()
+	cubic.Kernel = "cubic"
+	quintic := DefaultOptions() // 默认五次核
+	a, err := Generate(cubic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := Generate(quintic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(a.ToPGM(), b.ToPGM()) {
+		t.Fatal("三次核与五次核输出不应相同")
+	}
+	// 空 Kernel 与显式 quintic 等价（默认路径）
+	empty := DefaultOptions()
+	empty.Kernel = ""
+	c, _ := Generate(empty)
+	if !bytes.Equal(b.ToPGM(), c.ToPGM()) {
+		t.Fatal("空核名应回退到默认五次核")
+	}
 }
